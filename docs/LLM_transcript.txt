@@ -1,5 +1,5 @@
-## Student Name:
-## Student ID: 
+## Student Name: Kyle Williamson
+## Student ID: 218953901
 
 Prompt 1: "Copy paste your question"
 LLM Response 1: "Copy paste LLMs response"

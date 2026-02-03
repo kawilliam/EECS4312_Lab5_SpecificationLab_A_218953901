@@ -1,5 +1,5 @@
-## Student Name:
-## Student ID: 
+## Student Name: Kyle Williamson
+## Student ID: 218953901
 
 """
 Public test suite for the meeting slot suggestion exercise.

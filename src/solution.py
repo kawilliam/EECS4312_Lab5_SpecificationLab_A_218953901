@@ -1,5 +1,5 @@
-## Student Name:
-## Student ID: 
+## Student Name: Kyle Williamson
+## Student ID: 218953901
 
 """
 Stub file for the meeting slot suggestion exercise.
