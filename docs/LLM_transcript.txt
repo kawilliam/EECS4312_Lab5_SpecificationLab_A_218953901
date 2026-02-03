@@ -64,3 +64,156 @@ Assumption: All calendar events in the dict belong to the day specified; cross-d
 C6: No Buffer Time Between Meetings
 Assumption: Available slots can start immediately after an existing event ends (e.g., if event ends at 10:00, next slot can start at 10:00)
 Constraint: If buffer time is required (e.g., 15-minute breaks), this must be handled by the calling system or added as a future feature
+
+prompt 2: ```python
+def suggest_slots(
+    events: List[Dict[str, str]],
+    meeting_duration: int,
+    day: str
+) -> List[str]:
+    """
+    Suggest possible meeting start times for a given day.
+
+    Args:
+        events: List of dicts with keys {"start": "HH:MM", "end": "HH:MM"}
+        meeting_duration: Desired meeting length in minutes
+        day: Three-letter day abbreviation (e.g., "Mon", "Tue", ... "Fri")
+
+    Returns:
+        List of valid start times as "HH:MM" sorted ascending
+    """
+```
+
+creating the pyhtoncode for this function
+
+llm response: 
+
+from typing import List, Dict
+
+
+def suggest_slots(
+    events: List[Dict[str, str]],
+    meeting_duration: int,
+    day: str
+) -> List[str]:
+    """
+    Suggest possible meeting start times for a given day.
+
+    Args:
+        events: List of dicts with keys {"start": "HH:MM", "end": "HH:MM"}
+        meeting_duration: Desired meeting length in minutes
+        day: Three-letter day abbreviation (e.g., "Mon", "Tue", ... "Fri")
+
+    Returns:
+        List of valid start times as "HH:MM" sorted ascending
+    """
+    # Constants
+    BUSINESS_START = "09:00"
+    BUSINESS_END = "17:00"
+    SLOT_INCREMENT = 30  # Generate slots every 30 minutes
+    
+    def time_to_minutes(time_str: str) -> int:
+        """Convert HH:MM format to minutes since midnight."""
+        hours, minutes = map(int, time_str.split(':'))
+        return hours * 60 + minutes
+    
+    def minutes_to_time(minutes: int) -> str:
+        """Convert minutes since midnight to HH:MM format."""
+        hours = minutes // 60
+        mins = minutes % 60
+        return f"{hours:02d}:{mins:02d}"
+    
+    # Convert business hours to minutes for easier calculation
+    business_start_min = time_to_minutes(BUSINESS_START)
+    business_end_min = time_to_minutes(BUSINESS_END)
+    
+    # Handle empty calendar - full day available
+    if not events:
+        available_slots = []
+        slot_time = business_start_min
+        while slot_time + meeting_duration <= business_end_min:
+            available_slots.append(minutes_to_time(slot_time))
+            slot_time += SLOT_INCREMENT
+        return available_slots
+    
+    # Sort events by start time to process chronologically
+    sorted_events = sorted(events, key=lambda e: time_to_minutes(e["start"]))
+    
+    # Find available time slots between events
+    available_slots = []
+    current_time = business_start_min
+    
+    for event in sorted_events:
+        event_start = time_to_minutes(event["start"])
+        event_end = time_to_minutes(event["end"])
+        
+        # Generate slots in the gap before this event
+        slot_time = current_time
+        while slot_time + meeting_duration <= event_start:
+            available_slots.append(minutes_to_time(slot_time))
+            slot_time += SLOT_INCREMENT
+        
+        # Move current_time to the end of this event
+        current_time = max(current_time, event_end)
+    
+    # Generate slots from end of last event to end of business day
+    slot_time = current_time
+    while slot_time + meeting_duration <= business_end_min:
+        available_slots.append(minutes_to_time(slot_time))
+        slot_time += SLOT_INCREMENT
+    
+    return available_slots
+
+
+# Test cases based on acceptance criteria
+if __name__ == "__main__":
+    # AC1: Find Available Slots Between Meetings
+    events1 = [
+        {"start": "09:00", "end": "10:00"},
+        {"start": "11:00", "end": "12:00"},
+        {"start": "14:00", "end": "15:00"}
+    ]
+    result1 = suggest_slots(events1, 30, "Mon")
+    print("AC1:", result1)
+    # Expected: ['10:00', '10:30', '12:00', '12:30', '13:00', '13:30', '15:00', '15:30', '16:00', '16:30']
+    
+    # AC2: Empty Calendar Returns Full Day Availability
+    events2 = []
+    result2 = suggest_slots(events2, 60, "Tue")
+    print("\nAC2:", result2)
+    # Expected: ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00']
+    
+    # AC3: No Available Slots When Fully Booked
+    events3 = [
+        {"start": "09:00", "end": "13:00"},
+        {"start": "13:00", "end": "17:00"}
+    ]
+    result3 = suggest_slots(events3, 30, "Wed")
+    print("\nAC3:", result3)
+    # Expected: []
+    
+    # AC4: Meeting Duration Exceeds Available Gaps
+    events4 = [
+        {"start": "09:00", "end": "11:00"},
+        {"start": "12:00", "end": "14:00"}
+    ]
+    result4 = suggest_slots(events4, 120, "Thu")
+    print("\nAC4:", result4)
+    # Expected: ['14:00', '14:30', '15:00'] (slots where 120 min fits before 17:00)
+    
+    # AC5: Handles Back-to-Back Meetings
+    events5 = [
+        {"start": "09:00", "end": "10:00"},
+        {"start": "10:00", "end": "11:00"}
+    ]
+    result5 = suggest_slots(events5, 30, "Fri")
+    print("\nAC5:", result5)
+    # Expected: ['11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30']
+    
+    # AC6: Respects End of Business Day Boundary
+    events6 = [
+        {"start": "09:00", "end": "16:00"}
+    ]
+    result6 = suggest_slots(events6, 90, "Mon")
+    print("\nAC6:", result6)
+    # Expected: [] (only 60 minutes left, need 90)
