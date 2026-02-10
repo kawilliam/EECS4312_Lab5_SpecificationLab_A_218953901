@@ -30,6 +30,7 @@ def suggest_slots(
     # Constants
     BUSINESS_START = "09:00"
     BUSINESS_END = "17:00"
+    FRIDAY_END = "15:00"
     SLOT_INCREMENT = 30  # Generate slots every 30 minutes
     
     def time_to_minutes(time_str: str) -> int:
@@ -46,6 +47,10 @@ def suggest_slots(
     # Convert business hours to minutes for easier calculation
     business_start_min = time_to_minutes(BUSINESS_START)
     business_end_min = time_to_minutes(BUSINESS_END)
+
+    # Adjust business end time for Friday
+    if day == "Fri":
+        business_end_min = time_to_minutes(FRIDAY_END)
     
     # Handle empty calendar - full day available
     if not events:
