@@ -94,7 +94,7 @@ def suggest_slots(
         
         # Generate slots in the gap before this event
         slot_time = current_time
-        while slot_time + meeting_duration <= event_start:
+        while slot_time + meeting_duration < event_start:
             if not is_during_lunch(slot_time, meeting_duration):
                 available_slots.append(minutes_to_time(slot_time))
             slot_time += SLOT_INCREMENT
