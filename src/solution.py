@@ -31,7 +31,9 @@ def suggest_slots(
     BUSINESS_START = "09:00"
     BUSINESS_END = "17:00"
     FRIDAY_END = "15:00"
-    SLOT_INCREMENT = 30  # Generate slots every 30 minutes
+    LUNCH_START = "12:00"
+    LUNCH_END = "13:00"
+    SLOT_INCREMENT = 15  # Generate slots every 30 minutes
     
     def time_to_minutes(time_str: str) -> int:
         """Convert HH:MM format to minutes since midnight."""
@@ -44,20 +46,38 @@ def suggest_slots(
         mins = minutes % 60
         return f"{hours:02d}:{mins:02d}"
     
+    def is_during_lunch(start_time_min: int, duration: int) -> bool:
+            """Check if a meeting overlaps with lunch break."""
+            lunch_start_min = time_to_minutes(LUNCH_START)
+            lunch_end_min = time_to_minutes(LUNCH_END)
+            meeting_end_min = start_time_min + duration
+            
+            # Meeting overlaps lunch if it starts before lunch ends AND ends after lunch starts
+            return start_time_min < lunch_end_min and meeting_end_min > lunch_start_min
+
+
     # Convert business hours to minutes for easier calculation
     business_start_min = time_to_minutes(BUSINESS_START)
     business_end_min = time_to_minutes(BUSINESS_END)
 
     # Adjust business end time for Friday
-    if day == "Fri":
-        business_end_min = time_to_minutes(FRIDAY_END)
-    
+    if day == "Fri" or (isinstance(day, str) and len(day) > 3):
+        # Handle both "Fri" and date strings like "2026-02-01"
+        # For simplicity, check if it's explicitly "Fri" or a date string
+        if day == "Fri":
+            business_end_min = time_to_minutes(FRIDAY_END)
+
+
+    lunch_event = {"start": LUNCH_START, "end": LUNCH_END}
+    all_events = events + [lunch_event]
+
     # Handle empty calendar - full day available
     if not events:
         available_slots = []
         slot_time = business_start_min
         while slot_time + meeting_duration <= business_end_min:
-            available_slots.append(minutes_to_time(slot_time))
+            if not is_during_lunch(slot_time, meeting_duration):
+                available_slots.append(minutes_to_time(slot_time))
             slot_time += SLOT_INCREMENT
         return available_slots
     
@@ -75,7 +95,8 @@ def suggest_slots(
         # Generate slots in the gap before this event
         slot_time = current_time
         while slot_time + meeting_duration <= event_start:
-            available_slots.append(minutes_to_time(slot_time))
+            if not is_during_lunch(slot_time, meeting_duration):
+                available_slots.append(minutes_to_time(slot_time))
             slot_time += SLOT_INCREMENT
         
         # Move current_time to the end of this event
@@ -84,7 +105,8 @@ def suggest_slots(
     # Generate slots from end of last event to end of business day
     slot_time = current_time
     while slot_time + meeting_duration <= business_end_min:
-        available_slots.append(minutes_to_time(slot_time))
+        if not is_during_lunch(slot_time, meeting_duration):
+                available_slots.append(minutes_to_time(slot_time))
         slot_time += SLOT_INCREMENT
     
     return available_slots
