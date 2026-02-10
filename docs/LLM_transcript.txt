@@ -217,3 +217,50 @@ if __name__ == "__main__":
     result6 = suggest_slots(events6, 90, "Mon")
     print("\nAC6:", result6)
     # Expected: [] (only 60 minutes left, need 90)
+
+    prompt 3: tell me what to change in the code to not allow for meeting past 15:00 on fridays, so if that spot is available do not return it
+
+    def suggest_slots(
+    events: List[Dict[str, str]],
+    meeting_duration: int,
+    day: str
+) -> List[str]:
+    """
+    Suggest possible meeting start times for a given day.
+
+    Args:
+        events: List of dicts with keys {"start": "HH:MM", "end": "HH:MM"}
+        meeting_duration: Desired meeting length in minutes
+        day: Three-letter day abbreviation (e.g., "Mon", "Tue", ... "Fri")
+
+    Returns:
+        List of valid start times as "HH:MM" sorted ascending
+    """
+    # Constants
+    BUSINESS_START = "09:00"
+    BUSINESS_END = "17:00"
+    FRIDAY_END = "15:00"  # Add this line
+    SLOT_INCREMENT = 30
+    
+    def time_to_minutes(time_str: str) -> int:
+        """Convert HH:MM format to minutes since midnight."""
+        hours, minutes = map(int, time_str.split(':'))
+        return hours * 60 + minutes
+    
+    def minutes_to_time(minutes: int) -> str:
+        """Convert minutes since midnight to HH:MM format."""
+        hours = minutes // 60
+        mins = minutes % 60
+        return f"{hours:02d}:{mins:02d}"
+    
+    # Convert business hours to minutes for easier calculation
+    business_start_min = time_to_minutes(BUSINESS_START)
+    business_end_min = time_to_minutes(BUSINESS_END)
+    
+    # Add this block - Override end time for Fridays
+    if day == "Fri":
+        business_end_min = time_to_minutes(FRIDAY_END)
+    
+    # Rest of the code remains the same...
+
+    
